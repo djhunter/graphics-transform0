@@ -42,27 +42,6 @@ static const struct
     {   0.f,  0.6f, 0.f, 0.f, 1.f }
 };
 
-static const char* vertex_shader_text =
-"#version 330\n"
-"uniform mat4 MVP;\n"
-"in vec3 vCol;\n"
-"in vec2 vPos;\n"
-"out vec3 color;\n"
-"void main()\n"
-"{\n"
-"    gl_Position = MVP * vec4(vPos, 0.0, 1.0);\n"
-"    color = vCol;\n"
-"}\n";
-
-static const char* fragment_shader_text =
-"#version 330\n"
-"in vec3 color;\n"
-"out vec4 fragColor;\n"
-"void main()\n"
-"{\n"
-"    fragColor = vec4(color, 1.0);\n"
-"}\n";
-
 static void error_callback(int error, const char* description)
 {
     fprintf(stderr, "Error: %s\n", description);
@@ -74,11 +53,40 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
+/* Function for reading shaders (www.kronos.org) */
+char* filetobuf(char *file)
+{
+    FILE *fptr;
+    long length;
+    char *buf;
+
+    fptr = fopen(file, "rb");
+    if (!fptr) 
+    {
+        fprintf(stderr, "File not found: %s \n", file);
+        return NULL;
+    }
+    fseek(fptr, 0, SEEK_END);
+    length = ftell(fptr); 
+    buf = (char*)malloc(length+1); // length of the file plus null terminator
+    fseek(fptr, 0, SEEK_SET); 
+    fread(buf, length, 1, fptr); 
+    fclose(fptr); 
+    buf[length] = 0; // Null terminator 
+
+    return buf;
+}
+
 int main(void)
 {
     GLFWwindow* window;
     GLuint vertex_buffer, vertex_shader, fragment_shader, program;
     GLint mvp_location, vpos_location, vcol_location;
+
+    // Read shader code from files
+    char *vertex_shader_text, *fragment_shader_text;
+    vertex_shader_text = filetobuf("simple.vert");   // Note: we are assuming 
+    fragment_shader_text = filetobuf("simple.frag"); // an in-tree build
 
     glfwSetErrorCallback(error_callback);
 
@@ -120,7 +128,7 @@ int main(void)
     GLint success;
 
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex_shader, 1, &vertex_shader_text, NULL);
+    glShaderSource(vertex_shader, 1, (const GLchar**)&vertex_shader_text, NULL);
     glCompileShader(vertex_shader);
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
     if (!success) 
@@ -130,7 +138,7 @@ int main(void)
     }
 
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment_shader, 1, &fragment_shader_text, NULL);
+    glShaderSource(fragment_shader, 1, (const GLchar**)&fragment_shader_text, NULL);
     glCompileShader(fragment_shader);
     glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
     if (!success) 
@@ -153,6 +161,8 @@ int main(void)
     }
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader); 
+    free(vertex_shader_text);
+    free(fragment_shader_text);
 
     mvp_location = glGetUniformLocation(program, "MVP");
     vpos_location = glGetAttribLocation(program, "vPos");

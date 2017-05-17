@@ -35,3 +35,8 @@
 # Temporary files 
 *.swp
 
+# Build directories
+build-linux
+build-osx
+build-win
+
