@@ -1,5 +1,7 @@
 //========================================================================
-// Simple GLFW example
+// Skeleton Project for CS-150: 3D Computer Graphics
+//
+// Derived from "Simple GLFW example"
 // Copyright (c) Camilla Löwy <elmindreda@glfw.org>
 //
 // This software is provided 'as-is', without any express or implied
@@ -22,13 +24,10 @@
 //    distribution.
 //
 //========================================================================
-//! [code]
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
 #include "linmath.h"
-
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -44,11 +43,11 @@ static const struct
 };
 
 static const char* vertex_shader_text =
-"#version 110\n"
+"#version 330\n"
 "uniform mat4 MVP;\n"
-"attribute vec3 vCol;\n"
-"attribute vec2 vPos;\n"
-"varying vec3 color;\n"
+"in vec3 vCol;\n"
+"in vec2 vPos;\n"
+"out vec3 color;\n"
 "void main()\n"
 "{\n"
 "    gl_Position = MVP * vec4(vPos, 0.0, 1.0);\n"
@@ -56,11 +55,12 @@ static const char* vertex_shader_text =
 "}\n";
 
 static const char* fragment_shader_text =
-"#version 110\n"
-"varying vec3 color;\n"
+"#version 330\n"
+"in vec3 color;\n"
+"out vec4 fragColor;\n"
 "void main()\n"
 "{\n"
-"    gl_FragColor = vec4(color, 1.0);\n"
+"    fragColor = vec4(color, 1.0);\n"
 "}\n";
 
 static void error_callback(int error, const char* description)
@@ -85,10 +85,16 @@ int main(void)
     if (!glfwInit())
         exit(EXIT_FAILURE);
 
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    // Request OpenGL version 3.3. 
+    // On most linux systems, you can safely comment out the 
+    // following four hints and you will get the latest version your
+    // card supports.
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // Don't use old OpenGL
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE); // OSX needs this
 
-    window = glfwCreateWindow(640, 480, "Simple example", NULL, NULL);
+    window = glfwCreateWindow(640, 480, "Template Project", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -101,24 +107,52 @@ int main(void)
     gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
     glfwSwapInterval(1);
 
-    // NOTE: OpenGL error checks have been omitted for brevity
+    GLuint VAO;
+    glGenVertexArrays(1, &VAO);  
+    glBindVertexArray(VAO);
 
     glGenBuffers(1, &vertex_buffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
+    // Compile shaders and check for errors
+    GLchar info_log[8192];
+    GLint success;
+
     vertex_shader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertex_shader, 1, &vertex_shader_text, NULL);
     glCompileShader(vertex_shader);
+    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, &success);
+    if (!success) 
+    {
+        glGetShaderInfoLog(vertex_shader, 8192, NULL, info_log);
+        fprintf(stderr, "Vertex shader failed to complile. ERROR: \n%s\n\n", info_log);
+    }
 
     fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragment_shader, 1, &fragment_shader_text, NULL);
     glCompileShader(fragment_shader);
+    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, &success);
+    if (!success) 
+    {
+        glGetShaderInfoLog(fragment_shader, 8192, NULL, info_log);
+        fprintf(stderr, "Fragment shader failed to complile. ERROR: \n%s\n\n", info_log);
+    }
 
     program = glCreateProgram();
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
     glLinkProgram(program);
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) 
+    {
+        glGetProgramInfoLog(program, 8192, NULL, info_log);
+        fprintf(stderr, "Shader linking failed. ERROR: \n%s\n\n", info_log);
+        glDeleteProgram(program);
+        program = 0u;
+    }
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader); 
 
     mvp_location = glGetUniformLocation(program, "MVP");
     vpos_location = glGetAttribLocation(program, "vPos");
@@ -152,6 +186,11 @@ int main(void)
         glUniformMatrix4fv(mvp_location, 1, GL_FALSE, (const GLfloat*) mvp);
         glDrawArrays(GL_TRIANGLES, 0, 3);
 
+        // check for OpenGL errors
+        GLenum error_code;
+        while ((error_code = glGetError()) != GL_NO_ERROR) 
+            fprintf(stderr, "OpenGL error HEX: %x \n", error_code);
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -162,4 +201,3 @@ int main(void)
     exit(EXIT_SUCCESS);
 }
 
-//! [code]
