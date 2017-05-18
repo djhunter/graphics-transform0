@@ -1,5 +1,6 @@
-# graphics-skeleton
-Simple skeleton project for computer graphics class
+# graphics-project0
+
+Simple starter project for computer graphics class.
 
 This is a simple cross-platform skeleton project for students to use for their projects in my Computer Graphics class. It uses GLFW: http://www.glfw.org/
 
