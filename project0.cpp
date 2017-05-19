@@ -27,6 +27,10 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <iostream>
+#include <glm/glm.hpp>
+
+//we'll get rid of these soon TODO
 #include "linmath.h"
 #include <stdlib.h>
 #include <stdio.h>
