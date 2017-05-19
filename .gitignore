@@ -27,7 +27,7 @@
 *.i*86
 *.x86_64
 *.hex
-testproject
+project0
 
 # Debug files
 *.dSYM/

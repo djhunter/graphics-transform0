@@ -29,6 +29,7 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale, glm::perspective
 
 //we'll get rid of these soon TODO
 #include "linmath.h"
@@ -83,6 +84,8 @@ char* filetobuf(char *file)
 
 int main(void)
 {
+    // TODO: get rid of. Just for testing.
+    glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.f);
     GLFWwindow* window;
     GLuint vertex_buffer, vertex_shader, fragment_shader, program;
     GLint mvp_location, vpos_location, vcol_location;
