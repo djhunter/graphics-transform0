@@ -6,8 +6,10 @@ This is a simple cross-platform skeleton project for students to use for their p
 
 ## Prerequisites:
   * Linux: build-essential xorg-dev cmake libvulkan-dev doxygen
-  * OSX: Xcode and cmake
-  * WIN: Microsoft SDK (comes with Visual C++) and cmake
+  * OSX: Xcode, cmake
+  * WIN: Microsoft SDK (which comes with Visual C++) and cmake
+
+In addition, for all platforms, install the glm headers. This is a header-only library, so you just need to copy the `glm` directory into your include path (e.g., `/usr/local/include`). Use the latest release: http://glm.g-truc.net/
 
 ## Instructions for students:
 
@@ -17,3 +19,4 @@ This is a simple cross-platform skeleton project for students to use for their p
       cmake .
       make
       ```
+

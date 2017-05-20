@@ -55,7 +55,7 @@ void compileShader(GLuint shader, const char *filename)
     vector<char> shaderSource;
     readShaderCode(filename, shaderSource);
     const char *shaderText = {&shaderSource[0]};
-    const GLint shaderLength[] = {shaderSource.size()};
+    const GLint shaderLength[] = {(GLint) shaderSource.size()};
     glShaderSource(shader, 1, (const GLchar**)&shaderText, shaderLength);
     glCompileShader(shader);
     GLchar infoLog[8192];
@@ -160,7 +160,7 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         ratio = width / (float) height;
-        P = glm::perspective(70.0f, ratio, 1.0f, 100.0f);
+        P = glm::perspective(0.50f, ratio, 1.0f, 100.0f);
         M = glm::rotate(glm::mat4(1.0f), (float) glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f)); 
         MVP = P * V * M;
 
