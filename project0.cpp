@@ -171,7 +171,7 @@ int main(void)
         // check for OpenGL errors
         GLenum error_code;
         while ((error_code = glGetError()) != GL_NO_ERROR) 
-            cerr << "OpenGL error HEX: " << error_code << endl;
+            cerr << "OpenGL error HEX: " << hex << error_code << endl;
 
         glfwSwapBuffers(window);
         glfwPollEvents();
