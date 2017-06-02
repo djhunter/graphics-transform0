@@ -28,7 +28,7 @@ static const struct
 
 static void errorCallback(int error, const char* description)
 {
-    cerr << "GLFW Error: " << description << endl; 
+    cerr << "GLFW Error: " << description << endl;
 }
 
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -37,7 +37,7 @@ static void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
-static void readShaderCode(const char *filename, vector<char>& data) 
+static void readShaderCode(const char *filename, vector<char>& data)
 {
     ifstream infile(filename, ios::binary);
     if (!infile)
@@ -61,7 +61,7 @@ void compileShader(GLuint shader, const char *filename)
     GLchar infoLog[8192];
     GLint success = 0;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-    if (!success) 
+    if (!success)
     {
         glGetShaderInfoLog(shader, 8192, NULL, infoLog);
         cerr << "Shader " << filename << " failed to complile." << endl
@@ -80,8 +80,8 @@ int main(void)
     if (!glfwInit())
         exit(EXIT_FAILURE);
 
-    // Request OpenGL version 3.3. 
-    // On most linux systems, you can safely comment out the 
+    // Request OpenGL version 3.3.
+    // On most linux systems, you can safely comment out the
     // following four hints and you will get the latest version your
     // card supports.
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -100,10 +100,16 @@ int main(void)
 
     glfwMakeContextCurrent(window);
     gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
+    cout << "GL version: " << glGetString(GL_VERSION) << endl
+         << "GL vendor: " << glGetString(GL_VENDOR) << endl
+         << "GL renderer: " << glGetString(GL_RENDERER) << endl
+         << "GL shading language version: "
+         << glGetString(GL_SHADING_LANGUAGE_VERSION) << endl;
+
     glfwSwapInterval(1); // Framerate matches monitor refresh rate
 
     GLuint VAO; // vertex array object
-    glGenVertexArrays(1, &VAO);  
+    glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
     glGenBuffers(1, &vertexBuffer);
@@ -122,14 +128,14 @@ int main(void)
     glLinkProgram(program);
     GLint success = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
-    if (!success) 
+    if (!success)
     {
         cerr << "ERROR: Shader linking failed." << endl;
         glDeleteProgram(program);
         program = 0u;
     }
     glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader); 
+    glDeleteShader(fragmentShader);
 
     mvpLocation = glGetUniformLocation(program, "MVP");
     vposLocation = glGetAttribLocation(program, "vPos");
@@ -158,10 +164,10 @@ int main(void)
         glfwGetFramebufferSize(window, &width, &height);
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+
         ratio = width / (float) height;
         P = glm::perspective(0.50f, ratio, 1.0f, 100.0f);
-        M = glm::rotate(glm::mat4(1.0f), (float) glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f)); 
+        M = glm::rotate(glm::mat4(1.0f), (float) glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
         MVP = P * V * M;
 
         glUseProgram(program);
@@ -170,7 +176,7 @@ int main(void)
 
         // check for OpenGL errors
         GLenum error_code;
-        while ((error_code = glGetError()) != GL_NO_ERROR) 
+        while ((error_code = glGetError()) != GL_NO_ERROR)
             cerr << "OpenGL error HEX: " << hex << error_code << endl;
 
         glfwSwapBuffers(window);
@@ -182,4 +188,3 @@ int main(void)
     glfwTerminate();
     exit(EXIT_SUCCESS);
 }
-
