@@ -72,8 +72,6 @@ void compileShader(GLuint shader, const char *filename)
 int main(void)
 {
     GLFWwindow* window;
-    GLuint vertexBuffer, vertexShader, fragmentShader, program;
-    GLint mvpLocation, vposLocation, vcolLocation;
 
     glfwSetErrorCallback(errorCallback);
 
@@ -89,7 +87,7 @@ int main(void)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // Don't use old OpenGL
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE); // OSX needs this
 
-    window = glfwCreateWindow(640, 480, "CS 120 Template Project", NULL, NULL);
+    window = glfwCreateWindow(640, 480, "CS 150 Template Project", NULL, NULL);
     if (!window)
     {
         glfwTerminate();
@@ -112,6 +110,7 @@ int main(void)
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
+    GLuint vertexBuffer, vertexShader, fragmentShader, program;
     glGenBuffers(1, &vertexBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
     glBufferData(GL_ARRAY_BUFFER, sizeof(triangles), triangles, GL_STATIC_DRAW);
@@ -137,9 +136,9 @@ int main(void)
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    mvpLocation = glGetUniformLocation(program, "MVP");
-    vposLocation = glGetAttribLocation(program, "vPos");
-    vcolLocation = glGetAttribLocation(program, "vCol");
+    GLint mvpLocation = glGetUniformLocation(program, "MVP");
+    GLint vposLocation = glGetAttribLocation(program, "vPos");
+    GLint vcolLocation = glGetAttribLocation(program, "vCol");
 
     glEnableVertexAttribArray(vposLocation);
     glVertexAttribPointer(vposLocation, 3, GL_FLOAT, GL_FALSE,
@@ -184,7 +183,6 @@ int main(void)
     }
 
     glfwDestroyWindow(window);
-
     glfwTerminate();
     exit(EXIT_SUCCESS);
 }
