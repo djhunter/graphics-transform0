@@ -2,11 +2,9 @@
 // Skeleton Project for CS-150: 3D Computer Graphics
 //===================================================*/
 
-#include <glad/glad.h>
+#include <glad/glad.h> // must be included first
 #include <GLFW/glfw3.h>
 #include <iostream>
-#include <fstream>
-#include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -26,6 +24,31 @@ static const struct
     {  0.0f,  0.577f, 0.0f, 0.0f, 0.0f, 1.0f }
 };
 
+const GLchar* vertexShaderSource = R"glsl(
+#version 330
+uniform mat4 MVP;
+in vec3 vCol;
+in vec3 vPos;
+out vec3 color;
+
+void main()
+{
+    gl_Position = MVP * vec4(vPos, 1.0);
+    color = vCol;
+}
+)glsl";
+
+const GLchar* fragmentShaderSource = R"glsl(
+#version 330
+in vec3 color;
+out vec4 fragColor;
+
+void main()
+{
+    fragColor = vec4(color, 1.0);
+}
+)glsl";
+
 static void errorCallback(int error, const char* description)
 {
     cerr << "GLFW Error: " << description << endl;
@@ -37,26 +60,9 @@ static void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
-static void readShaderCode(const char *filename, vector<char>& data)
+void compileShader(GLuint shader, const char *shaderText)
 {
-    ifstream infile(filename, ios::binary);
-    if (!infile)
-        cerr << "File not found: " << filename << endl;
-    infile.exceptions(ios::eofbit | ios::failbit | ios::badbit);
-    infile.seekg(0, ios::end);
-    int num_chars = infile.tellg();
-    data.resize(num_chars);
-    infile.seekg(0, ios::beg);
-    infile.read(&data[0], num_chars);
-}
-
-void compileShader(GLuint shader, const char *filename)
-{
-    vector<char> shaderSource;
-    readShaderCode(filename, shaderSource);
-    const char *shaderText = {&shaderSource[0]};
-    const GLint shaderLength[] = {(GLint) shaderSource.size()};
-    glShaderSource(shader, 1, (const GLchar**)&shaderText, shaderLength);
+    glShaderSource(shader, 1, &shaderText, NULL);
     glCompileShader(shader);
     GLchar infoLog[8192];
     GLint success = 0;
@@ -64,7 +70,7 @@ void compileShader(GLuint shader, const char *filename)
     if (!success)
     {
         glGetShaderInfoLog(shader, 8192, NULL, infoLog);
-        cerr << "Shader " << filename << " failed to complile." << endl
+        cerr << "Shader failed to complile." << endl
              << "Error log: " << infoLog << endl;
     }
 }
@@ -118,8 +124,8 @@ int main(void)
     // Read shaders from files, compile them, and check for errors
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    compileShader(vertexShader, "simple.vert");   // Here is where we are assuming
-    compileShader(fragmentShader, "simple.frag"); // an in-tree build.
+    compileShader(vertexShader, vertexShaderSource);
+    compileShader(fragmentShader, fragmentShaderSource);
 
     program = glCreateProgram();
     glAttachShader(program, vertexShader);
