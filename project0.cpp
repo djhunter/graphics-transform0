@@ -5,24 +5,26 @@
 #include <glad/glad.h> // must be included first
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <array>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace std;
 
-static const int NUM_TRIANGLES = 1;
-
-static const struct
-{
-    GLfloat x, y, z; // position in R^3
-    GLfloat r, g, b; // color
-} triangles[3*NUM_TRIANGLES] =
-{
-    { -0.5f, -0.289, 0.0f, 1.0f, 0.0f, 0.0f },
-    {  0.5f, -0.289f, 0.0f, 0.0f, 1.0f, 0.0f },
-    {  0.0f,  0.577f, 0.0f, 0.0f, 0.0f, 1.0f }
+struct Vertex {
+    glm::vec3 position;
+    glm::vec3 color;
 };
+
+const int NUM_TRIANGLES = 1;
+
+const array<Vertex, 3*NUM_TRIANGLES> triangles =
+{{
+    { glm::vec3(-0.5f, -0.289, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f) },
+    { glm::vec3(0.5f, -0.289f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f) },
+    { glm::vec3(0.0f,  0.577f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f) }
+}};
 
 const GLchar* vertexShaderSource = R"glsl(
 #version 330
@@ -49,12 +51,12 @@ void main()
 }
 )glsl";
 
-static void errorCallback(int error, const char* description)
+void errorCallback(int error, const char* description)
 {
     cerr << "GLFW Error: " << description << endl;
 }
 
-static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
         glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -85,9 +87,6 @@ int main(void)
         exit(EXIT_FAILURE);
 
     // Request OpenGL version 3.3.
-    // On most linux systems, you can safely comment out the
-    // following four hints and you will get the latest version your
-    // card supports.
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); // Don't use old OpenGL
@@ -112,21 +111,13 @@ int main(void)
 
     glfwSwapInterval(1); // Framerate matches monitor refresh rate
 
-    GLuint VAO; // vertex array object
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
 
-    GLuint vertexBuffer, vertexShader, fragmentShader, program;
-    glGenBuffers(1, &vertexBuffer);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangles), triangles, GL_STATIC_DRAW);
-
-    // Read shaders from files, compile them, and check for errors
+    // Compile shaders and check for errors
+    GLuint vertexShader, fragmentShader, program;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
     fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     compileShader(vertexShader, vertexShaderSource);
     compileShader(fragmentShader, fragmentShaderSource);
-
     program = glCreateProgram();
     glAttachShader(program, vertexShader);
     glAttachShader(program, fragmentShader);
@@ -142,16 +133,24 @@ int main(void)
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    GLint mvpLocation = glGetUniformLocation(program, "MVP");
-    GLint vposLocation = glGetAttribLocation(program, "vPos");
-    GLint vcolLocation = glGetAttribLocation(program, "vCol");
+    GLint l_MVP = glGetUniformLocation(program, "MVP");
+    GLint l_vPos = glGetAttribLocation(program, "vPos");
+    GLint l_vCol = glGetAttribLocation(program, "vCol");
 
-    glEnableVertexAttribArray(vposLocation);
-    glVertexAttribPointer(vposLocation, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(triangles[0]), (GLvoid*) 0);
-    glEnableVertexAttribArray(vcolLocation);
-    glVertexAttribPointer(vcolLocation, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(triangles[0]), (GLvoid*) (sizeof(GLfloat) * 3));
+    // Send data to OpenGL context
+    GLuint VAO, VBO; // vertex array object, vertex buffer object
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, triangles.size() * sizeof(Vertex),
+                 triangles.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(l_vPos);
+    glVertexAttribPointer(l_vPos, 3, GL_FLOAT, GL_FALSE,
+                          sizeof(Vertex), (GLvoid*) 0);
+    glEnableVertexAttribArray(l_vCol);
+    glVertexAttribPointer(l_vCol, 3, GL_FLOAT, GL_FALSE,
+                          sizeof(Vertex), (GLvoid*) (sizeof(glm::vec3)));
 
     glEnable(GL_DEPTH_TEST);
 
@@ -172,11 +171,12 @@ int main(void)
 
         ratio = width / (float) height;
         P = glm::perspective(0.50f, ratio, 1.0f, 100.0f);
-        M = glm::rotate(glm::mat4(1.0f), (float) glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+        M = glm::rotate(glm::mat4(1.0f),
+                        (float) glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
         MVP = P * V * M;
 
         glUseProgram(program);
-        glUniformMatrix4fv(mvpLocation, 1, GL_FALSE, glm::value_ptr(MVP));
+        glUniformMatrix4fv(l_MVP, 1, GL_FALSE, glm::value_ptr(MVP));
         glDrawArrays(GL_TRIANGLES, 0, 3*NUM_TRIANGLES);
 
         // check for OpenGL errors
