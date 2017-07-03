@@ -27,13 +27,13 @@
 *.i*86
 *.x86_64
 *.hex
-project0
+transform0
 
 # Debug files
 *.dSYM/
 *.su
 
-# Temporary files 
+# Temporary files
 *.swp
 
 # Build directories
@@ -47,4 +47,3 @@ CMakeCache.txt
 *.cmake
 glfw
 CMakeFiles
-

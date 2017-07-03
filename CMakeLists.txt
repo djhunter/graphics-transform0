@@ -9,9 +9,9 @@ include_directories(${glfw_INCLUDE_DIRS} "${GLFW_SOURCE_DIR}/deps")
 set(GLAD "${GLFW_SOURCE_DIR}/deps/glad/glad.h"
          "${GLFW_SOURCE_DIR}/deps/glad.c")
 
-add_executable(project0 WIN32 MACOSX_BUNDLE project0.cpp ${ICON} ${GLAD})
+add_executable(transform0 WIN32 MACOSX_BUNDLE transform0.cpp ${ICON} ${GLAD})
 
-target_link_libraries(project0 glfw ${GLFW_LIBRARIES})
+target_link_libraries(transform0 glfw ${GLFW_LIBRARIES})
 
 if (MATH_LIBRARY)
     link_libraries("${MATH_LIBRARY}")
@@ -33,7 +33,7 @@ elseif (APPLE)
         MACOSX_PACKAGE_LOCATION "Resources")
 endif()
 
-set(WINDOWS_BINARIES project0)
+set(WINDOWS_BINARIES transform0)
 
 if (MSVC)
     # Tell MSVC to use main instead of WinMain for Windows subsystem executables
@@ -42,7 +42,7 @@ if (MSVC)
 endif()
 
 if (APPLE)
-    set_target_properties(project0 PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "TestProject")
+    set_target_properties(transform0 PROPERTIES MACOSX_BUNDLE_BUNDLE_NAME "TestProject")
 
     set_target_properties(${WINDOWS_BINARIES} PROPERTIES
                           RESOURCE glfw.icns
@@ -51,4 +51,3 @@ if (APPLE)
                           MACOSX_BUNDLE_ICON_FILE glfw.icns
                           MACOSX_BUNDLE_INFO_PLIST "${GLFW_SOURCE_DIR}/CMake/MacOSXBundleInfo.plist.in")
 endif()
-

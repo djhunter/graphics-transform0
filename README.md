@@ -1,6 +1,7 @@
-# graphics-project0
+# graphics-transform0
 
-Simple starter project for computer graphics class.
+Simple starter project for computer graphics class. Illustrates transformations
+and mouse movement using wireframe objects.
 
 This is a simple cross-platform skeleton project for students to use for their projects in my Computer Graphics class. It uses [GLFW](http://www.glfw.org/) and [GLM](http://glm.g-truc.net/).
 
@@ -17,4 +18,3 @@ This is a simple cross-platform skeleton project for students to use for their p
       cmake .
       make
       ```
-

@@ -11,43 +11,44 @@
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace std;
+using namespace glm;
 
 struct Vertex {
-    glm::vec3 position;
-    glm::vec3 color;
+    vec3 position;
 };
 
-const int NUM_TRIANGLES = 1;
+const int NUM_OCTANT_LEVELS = 3;
+const int POW_2_NOL = (1 << NUM_OCTANT_LEVELS); // 2^NUM_OCTANT_LEVELS
+array<Vertex, (POW_2_NOL+1)*(POW_2_NOL+2)/2> octant; // populated in init_octant()
+const int NUM_OCTANT_IDX = POW_2_NOL*POW_2_NOL*3;
+array<GLuint, NUM_OCTANT_IDX> octant_idx; // populated in init_octant()
 
-const array<Vertex, 3*NUM_TRIANGLES> triangles =
-{{
-    { glm::vec3(-0.5f, -0.289, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f) },
-    { glm::vec3(0.5f, -0.289f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f) },
-    { glm::vec3(0.0f,  0.577f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f) }
-}};
+// Global Parameters
+GLfloat xAngle = 0.0f;
+GLfloat yAngle = 0.0f;
+double xCursor;
+double yCursor;
+float mouseSpeed = 0.01f;
 
 const GLchar* vertexShaderSource = R"glsl(
 #version 330
 uniform mat4 MVP;
-in vec3 vCol;
-in vec3 vPos;
-out vec3 color;
+in vec3 posn_obj;
 
 void main()
 {
-    gl_Position = MVP * vec4(vPos, 1.0);
-    color = vCol;
+    gl_Position = MVP * vec4(posn_obj, 1.0);
 }
 )glsl";
 
 const GLchar* fragmentShaderSource = R"glsl(
 #version 330
-in vec3 color;
+uniform vec3 uColor;
 out vec4 fragColor;
 
 void main()
 {
-    fragColor = vec4(color, 1.0);
+    fragColor = vec4(uColor, 1.0);
 }
 )glsl";
 
@@ -62,6 +63,37 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
+float zoomAngle = 0.50f;
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    static const float zoomEpsilon = 0.02f;
+    zoomAngle += yoffset*zoomEpsilon;
+}
+
+void buttonCallback(GLFWwindow* window, int button, int action, int mods)
+{ // see glfw/examples/wave.c
+    if (button != GLFW_MOUSE_BUTTON_LEFT)
+        return;
+    if (action == GLFW_PRESS)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        glfwGetCursorPos(window, &xCursor, &yCursor);
+    }
+    else
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+}
+
+void cursorCallback(GLFWwindow* window, double x, double y)
+{ // see glfw/examples/wave.c
+    if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
+    {
+        xAngle += (GLfloat) (x - xCursor) * mouseSpeed;
+        yAngle += (GLfloat) (y - yCursor) * mouseSpeed;
+        xCursor = x;
+        yCursor = y;
+    }
+}
+
 void compileShader(GLuint shader, const char *shaderText)
 {
     glShaderSource(shader, 1, &shaderText, NULL);
@@ -74,6 +106,36 @@ void compileShader(GLuint shader, const char *shaderText)
         glGetShaderInfoLog(shader, 8192, NULL, infoLog);
         cerr << "Shader failed to complile." << endl
              << "Error log: " << infoLog << endl;
+    }
+}
+
+void init_octant()
+{
+    int i = 0;
+    int j = 0;
+    GLuint ll = 0;
+    octant[i].position = vec3(1.0f, 0.0f, 0.0f);
+    float d = 1.0f/(POW_2_NOL);
+    for (int r=0; r<POW_2_NOL; r++) {
+        for (int s=1; s<POW_2_NOL-r+1; s++) {
+            i++;
+            octant[i].position = octant[i-1].position + vec3(-d, d, 0.0f);
+            octant_idx[j++] = ll + s - 1;
+            octant_idx[j++] = ll + s;
+            octant_idx[j++] = ll + s + POW_2_NOL - r;
+        }
+        for (int t=1; t<POW_2_NOL-r; t++) {
+            octant_idx[j++] = ll + t;
+            octant_idx[j++] = ll + t + POW_2_NOL + 1 - r;
+            octant_idx[j++] = ll + t + POW_2_NOL - r;
+        }
+        // move to first entry of next row
+        ll += POW_2_NOL + 1 - r;
+        i++;
+        octant[i].position = octant[i-POW_2_NOL-1+r].position + vec3(-d, 0, d);
+    }
+    for (auto &v : octant) {
+        v.position = normalize(v.position);
     }
 }
 
@@ -100,6 +162,9 @@ int main(void)
     }
 
     glfwSetKeyCallback(window, keyCallback);
+    glfwSetScrollCallback(window, scrollCallback);
+    glfwSetMouseButtonCallback(window, buttonCallback);
+    glfwSetCursorPosCallback(window, cursorCallback);
 
     glfwMakeContextCurrent(window);
     gladLoadGLLoader((GLADloadproc) glfwGetProcAddress);
@@ -133,31 +198,34 @@ int main(void)
     glDeleteShader(fragmentShader);
 
     GLint l_MVP = glGetUniformLocation(program, "MVP");
-    GLint l_vPos = glGetAttribLocation(program, "vPos");
-    GLint l_vCol = glGetAttribLocation(program, "vCol");
+    GLint l_uColor = glGetUniformLocation(program, "uColor");
+    GLint l_posn_obj = glGetAttribLocation(program, "posn_obj");
 
+    init_octant();
     // Send data to OpenGL context
-    GLuint VAO, VBO; // vertex array object, vertex buffer object
+    GLuint VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, triangles.size() * sizeof(Vertex),
-                 triangles.data(), GL_STATIC_DRAW);
-    glEnableVertexAttribArray(l_vPos);
-    glVertexAttribPointer(l_vPos, 3, GL_FLOAT, GL_FALSE,
+    glBufferData(GL_ARRAY_BUFFER, octant.size() * sizeof(Vertex),
+                 octant.data(), GL_STATIC_DRAW);
+    glEnableVertexAttribArray(l_posn_obj);
+    glVertexAttribPointer(l_posn_obj, 3, GL_FLOAT, GL_FALSE,
                           sizeof(Vertex), (GLvoid*) 0);
-    glEnableVertexAttribArray(l_vCol);
-    glVertexAttribPointer(l_vCol, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(Vertex), (GLvoid*) (sizeof(glm::vec3)));
+    glGenBuffers(1, &EBO); // element buffer (indices)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, octant_idx.size()*sizeof(GLuint),
+                 octant_idx.data(), GL_STATIC_DRAW);
 
+    glUseProgram(program);
     glEnable(GL_DEPTH_TEST);
-
-    glm::mat4 M, V, P, MVP;
-    glm::vec3 eye = glm::vec3(0.0, 0.0, 5.0);
-    glm::vec3 center = glm::vec3(0.0, 0.0, 0.0);
-    glm::vec3 up = glm::vec3(0.0, 1.0, 0.0);
-    V = glm::lookAt(eye, center, up);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // wireframe mode
+    mat4 M, V, P, MVP;
+    vec3 eye = vec3(0.0, 7.0, 15.0);
+    vec3 center = vec3(0.0, 0.0, 0.0);
+    vec3 up = vec3(0.0, 1.0, 0.0);
+    V = lookAt(eye, center, up);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -169,14 +237,14 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         ratio = width / (float) height;
-        P = glm::perspective(0.50f, ratio, 1.0f, 100.0f);
-        M = glm::rotate(glm::mat4(1.0f),
-                        (float) glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+        P = perspective(zoomAngle, ratio, 1.0f, 100.0f);
+        M = rotate(mat4(1.0), xAngle, vec3(0.0f, 1.0f, 0.0f));
+        M = rotate(M, yAngle, vec3(1.0f, 0.0f, 0.0f));
         MVP = P * V * M;
 
-        glUseProgram(program);
-        glUniformMatrix4fv(l_MVP, 1, GL_FALSE, glm::value_ptr(MVP));
-        glDrawArrays(GL_TRIANGLES, 0, 3*NUM_TRIANGLES);
+        glUniformMatrix4fv(l_MVP, 1, GL_FALSE, value_ptr(MVP));
+        glUniform3f(l_uColor, 0.0f, 0.7f, 0.0f); // dark green
+        glDrawElements(GL_TRIANGLES, octant_idx.size(), GL_UNSIGNED_INT, 0);
 
         // check for OpenGL errors
         GLenum error_code;
