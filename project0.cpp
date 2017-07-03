@@ -111,7 +111,6 @@ int main(void)
 
     glfwSwapInterval(1); // Framerate matches monitor refresh rate
 
-
     // Compile shaders and check for errors
     GLuint vertexShader, fragmentShader, program;
     vertexShader = glCreateShader(GL_VERTEX_SHADER);
