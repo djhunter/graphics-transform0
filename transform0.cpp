@@ -17,18 +17,20 @@ struct Vertex {
     vec3 position;
 };
 
-const int NUM_OCTANT_LEVELS = 3;
+const int NUM_OCTANT_LEVELS = 4;
 const int POW_2_NOL = (1 << NUM_OCTANT_LEVELS); // 2^NUM_OCTANT_LEVELS
 array<Vertex, (POW_2_NOL+1)*(POW_2_NOL+2)/2> octant; // populated in init_octant()
 const int NUM_OCTANT_IDX = POW_2_NOL*POW_2_NOL*3;
 array<GLuint, NUM_OCTANT_IDX> octant_idx; // populated in init_octant()
 
 // Global Parameters
-GLfloat xAngle = 0.0f;
-GLfloat yAngle = 0.0f;
+mat4 M_octant = mat4(1.0f); // model matrix for octant
 double xCursor;
 double yCursor;
 float mouseSpeed = 0.01f;
+float zoomAngle = 0.30f;
+bool dragRotating = false;
+bool dragTranslating = false;
 
 const GLchar* vertexShaderSource = R"glsl(
 #version 330
@@ -63,7 +65,6 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
-float zoomAngle = 0.50f;
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
     static const float zoomEpsilon = 0.02f;
@@ -72,26 +73,42 @@ void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 
 void buttonCallback(GLFWwindow* window, int button, int action, int mods)
 { // see glfw/examples/wave.c
-    if (button != GLFW_MOUSE_BUTTON_LEFT)
+    if (button != GLFW_MOUSE_BUTTON_LEFT && button != GLFW_MOUSE_BUTTON_RIGHT)
         return;
-    if (action == GLFW_PRESS)
-    {
+    if (action == GLFW_PRESS) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         glfwGetCursorPos(window, &xCursor, &yCursor);
+        if (button == GLFW_MOUSE_BUTTON_LEFT)
+            dragRotating = true;
+        else
+            dragTranslating = true;
     }
-    else
+    else {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        dragRotating = false;
+        dragTranslating = false;
+    }
 }
 
 void cursorCallback(GLFWwindow* window, double x, double y)
 { // see glfw/examples/wave.c
-    if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED)
-    {
-        xAngle += (GLfloat) (x - xCursor) * mouseSpeed;
-        yAngle += (GLfloat) (y - yCursor) * mouseSpeed;
-        xCursor = x;
-        yCursor = y;
+    if (!dragRotating && !dragTranslating)
+        return;
+    static mat4 T;
+    if (dragRotating) {
+        T = rotate(mat4(1.0f), (float) (x - xCursor) * mouseSpeed,
+                   vec3(0.0f, 1.0f, 0.0f));
+        T = rotate(T, (float) (y - yCursor) * mouseSpeed,
+                   vec3(1.0f, 0.0f, 0.0f));
     }
+    else {
+        T = translate(mat4(1.0f),
+                      vec3((float) (x - xCursor) * mouseSpeed,
+                           (float) (yCursor - y) * mouseSpeed, 0.0f));
+    }
+    M_octant *= T; // FIXME
+    xCursor = x;
+    yCursor = y;
 }
 
 void compileShader(GLuint shader, const char *shaderText)
@@ -221,7 +238,7 @@ int main(void)
     glUseProgram(program);
     glEnable(GL_DEPTH_TEST);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // wireframe mode
-    mat4 M, V, P, MVP;
+    mat4 V, P, MVP;
     vec3 eye = vec3(0.0, 7.0, 15.0);
     vec3 center = vec3(0.0, 0.0, 0.0);
     vec3 up = vec3(0.0, 1.0, 0.0);
@@ -238,9 +255,7 @@ int main(void)
 
         ratio = width / (float) height;
         P = perspective(zoomAngle, ratio, 1.0f, 100.0f);
-        M = rotate(mat4(1.0), xAngle, vec3(0.0f, 1.0f, 0.0f));
-        M = rotate(M, yAngle, vec3(1.0f, 0.0f, 0.0f));
-        MVP = P * V * M;
+        MVP = P * V * M_octant;
 
         glUniformMatrix4fv(l_MVP, 1, GL_FALSE, value_ptr(MVP));
         glUniform3f(l_uColor, 0.0f, 0.7f, 0.0f); // dark green
