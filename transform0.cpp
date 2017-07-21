@@ -213,6 +213,7 @@ int main(void)
     }
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
+    glUseProgram(program);
 
     GLint l_MVP = glGetUniformLocation(program, "MVP");
     GLint l_uColor = glGetUniformLocation(program, "uColor");
@@ -235,7 +236,6 @@ int main(void)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, octant_idx.size()*sizeof(GLuint),
                  octant_idx.data(), GL_STATIC_DRAW);
 
-    glUseProgram(program);
     glEnable(GL_DEPTH_TEST);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // wireframe mode
     mat4 V, P, MVP;
