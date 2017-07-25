@@ -230,7 +230,7 @@ int main(void)
                  octant.data(), GL_STATIC_DRAW);
     glEnableVertexAttribArray(l_posn_obj);
     glVertexAttribPointer(l_posn_obj, 3, GL_FLOAT, GL_FALSE,
-                          sizeof(Vertex), (GLvoid*) 0);
+                          sizeof(Vertex), reinterpret_cast<const GLvoid*>(0));
     glGenBuffers(1, &EBO); // element buffer (indices)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, octant_idx.size()*sizeof(GLuint),
@@ -239,9 +239,9 @@ int main(void)
     glEnable(GL_DEPTH_TEST);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // wireframe mode
     mat4 V, P, MVP;
-    vec3 eye = vec3(0.0, 7.0, 15.0);
-    vec3 center = vec3(0.0, 0.0, 0.0);
-    vec3 up = vec3(0.0, 1.0, 0.0);
+    vec3 eye = vec3(0.0f, 7.0f, 15.0f);
+    vec3 center = vec3(0.0f, 0.0f, 0.0f);
+    vec3 up = vec3(0.0f, 1.0f, 0.0f);
     V = lookAt(eye, center, up);
 
     while (!glfwWindowShouldClose(window))
@@ -253,7 +253,7 @@ int main(void)
         glViewport(0, 0, width, height);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        ratio = width / (float) height;
+        ratio = static_cast<float>(width) / static_cast<float>(height);
         P = perspective(zoomAngle, ratio, 1.0f, 100.0f);
         MVP = P * V * M_octant;
 
